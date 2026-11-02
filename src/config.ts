@@ -22,6 +22,14 @@ export const BRAND = {
 }
 
 /**
+ * Refer & earn defaults. The owner changes these in /admin → Settings;
+ * the values here are used only until then (or if the database is not connected).
+ * friendPercent: discount for the new customer on their first month.
+ * referrerPercent: reward for the customer who shared the code.
+ */
+export const REFERRAL = { enabled: true, friendPercent: 10, referrerPercent: 10 }
+
+/**
  * Pincodes you serve. Leave empty to hide the "check my area" box.
  * TODO: add pincodes, e.g. ['226010', '226016'].
  */

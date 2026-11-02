@@ -10,11 +10,25 @@ export const PAINTS = [
   { name: 'Graphite Grey', hex: '#3a3f47' },
 ]
 
+export type Referral = { enabled: boolean; friendPercent: number; referrerPercent: number }
+
+/** Settings the owner edits in /admin. Anything missing falls back to src/config.ts. */
+export type RemoteSettings = {
+  whatsapp?: string
+  referral?: Referral
+  prices?: Record<string, Record<CarType, Record<Billing, number | null>>>
+  washes?: Record<string, string>
+  addons?: Record<string, number | null>
+}
+
 type State = {
   carType: CarType
   paint: string
   planId: string
   billing: Billing
+  settings: RemoteSettings
+  db: boolean
+  refCode: string
 }
 
 let state: State = {
@@ -22,6 +36,9 @@ let state: State = {
   paint: PAINTS[0].hex,
   planId: PLANS[1]?.id ?? PLANS[0].id,
   billing: 'monthly',
+  settings: {},
+  db: false,
+  refCode: '',
 }
 
 const listeners = new Set<() => void>()

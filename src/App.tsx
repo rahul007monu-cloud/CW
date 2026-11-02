@@ -6,6 +6,7 @@ import { Plans } from './components/Plans'
 import { Booking } from './components/Booking'
 import { Addons, Faq, Footer, HowItWorks, WhyUs } from './components/Sections'
 import { WhatsAppFab } from './components/WhatsAppFab'
+import { Refer } from './components/Refer'
 
 const Scene = lazy(() => import('./three/Scene'))
 
@@ -29,6 +30,7 @@ export default function App() {
         <Plans />
         <Addons />
         <Booking />
+        <Refer />
         <Faq />
       </main>
       <Footer />

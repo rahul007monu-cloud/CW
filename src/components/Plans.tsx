@@ -1,5 +1,5 @@
 import { CAR_TYPES, PLANS } from '../config'
-import { inr, useReveal } from '../lib'
+import { inr, planPrice, planWashes, useReveal } from '../lib'
 import { appStore, useApp } from '../store'
 
 function Price({ monthly, yearly, billing }: { monthly: number | null; yearly: number | null; billing: 'monthly' | 'yearly' }) {
@@ -78,9 +78,9 @@ export function Plans() {
                   <span className="absolute -top-3 left-7 rounded-full bg-neon px-3 py-1 text-xs font-bold text-ink">{p.badge}</span>
                 )}
                 <h3 className="font-display text-xl font-bold text-white">{p.name}</h3>
-                {p.washesPerMonth && <p className="mt-1 text-sm text-neon">{p.washesPerMonth}</p>}
+                {planWashes(p.id) && <p className="mt-1 text-sm text-neon">{planWashes(p.id)}</p>}
                 <div className="mt-5">
-                  <Price monthly={p.prices[carType].monthly} yearly={p.prices[carType].yearly} billing={billing} />
+                  <Price monthly={planPrice(p.id, carType, 'monthly')} yearly={planPrice(p.id, carType, 'yearly')} billing={billing} />
                 </div>
                 <ul className="mt-6 flex-1 space-y-3 text-sm text-slate-300">
                   {p.features.map((f) => (
