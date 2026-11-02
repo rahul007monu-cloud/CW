@@ -1,0 +1,99 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-ink: #05070d;
+  --color-neon: #22d3ee;
+  --color-volt: #3b82f6;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Sora', 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--color-ink);
+}
+
+body {
+  @apply bg-ink text-slate-200 font-sans antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+::selection {
+  background: rgb(34 211 238 / 0.35);
+}
+
+@utility glass {
+  border: 1px solid rgb(255 255 255 / 0.1);
+  background: rgb(255 255 255 / 0.04);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+@utility btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.panel {
+  @apply rounded-3xl border border-white/10 bg-ink/70 backdrop-blur-xl;
+}
+
+.text-gradient {
+  @apply bg-gradient-to-r from-white via-cyan-200 to-neon bg-clip-text text-transparent;
+}
+
+.btn-primary {
+  @apply btn bg-neon text-ink shadow-[0_0_30px_-5px_rgb(34_211_238_/_0.7)] hover:bg-cyan-300;
+}
+.btn-ghost {
+  @apply btn glass text-white hover:bg-white/10;
+}
+
+.field {
+  @apply w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-white placeholder:text-slate-500 outline-none transition focus:border-neon/70 focus:bg-white/[0.07];
+}
+
+.chip {
+  @apply rounded-full border px-4 py-2 text-sm font-medium transition;
+}
+.chip-on {
+  @apply border-neon bg-neon/15 text-white;
+}
+.chip-off {
+  @apply border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/30;
+}
+
+/* scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.reveal.in {
+  opacity: 1;
+  transform: none;
+}
+
+@keyframes scroll-dot {
+  0% { transform: translateY(0); opacity: 1; }
+  80% { transform: translateY(14px); opacity: 0; }
+  100% { opacity: 0; }
+}
+.scroll-dot {
+  animation: scroll-dot 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .scroll-dot { animation: none; }
+}
