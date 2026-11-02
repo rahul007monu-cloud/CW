@@ -34,7 +34,7 @@ export function InstallApp() {
   return (
     <>
       <button
-        className="btn-ghost !px-4 !py-2 text-sm"
+        className="btn-ghost !px-4 !py-2 text-sm whitespace-nowrap"
         onClick={async () => {
           if (evt) {
             await evt.prompt()

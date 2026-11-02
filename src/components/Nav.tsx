@@ -38,9 +38,11 @@ export function Nav() {
         </div>
         <div className="flex items-center gap-2">
           <InstallApp />
-          <a href="#book" className="btn-primary hidden !px-5 !py-2 text-sm sm:inline-flex">
-            Book now
-          </a>
+          <span className="hidden sm:inline-flex">
+            <a href="#book" className="btn-primary !px-5 !py-2 text-sm whitespace-nowrap">
+              Book now
+            </a>
+          </span>
           <button
             className="glass rounded-full p-2 md:hidden"
             aria-label="Menu"
