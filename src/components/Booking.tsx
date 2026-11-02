@@ -1,6 +1,7 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { ADDONS, BRAND, CAR_TYPES, PLANS, SERVICE_PINCODES, TIME_SLOTS, WEEK_DAYS } from '../config'
-import { inr, openWhatsApp, planPrice } from '../lib'
+import { addonPrice, inr, openWhatsApp, planPrice, referral } from '../lib'
+import { ShareCode } from './Refer'
 import { appStore, useApp } from '../store'
 
 /** Today's date in the user's local timezone, as YYYY-MM-DD. */
@@ -22,8 +23,42 @@ function toggle(list: string[], v: string) {
   return list.includes(v) ? list.filter((x) => x !== v) : [...list, v]
 }
 
+type RefState = { status: 'idle' | 'checking' | 'valid' | 'invalid' | 'unverified'; percent: number }
+
 export function Booking() {
-  const { carType, planId, billing } = useApp()
+  const { carType, planId, billing, refCode: linkCode } = useApp()
+  const ref = referral()
+  const [refCode, setRefCode] = useState(linkCode)
+  const [refState, setRefState] = useState<RefState>({ status: 'idle', percent: 0 })
+  const [myCode, setMyCode] = useState('')
+
+  // A ?ref=CODE link fills the code in automatically.
+  useEffect(() => {
+    if (linkCode) setRefCode(linkCode)
+  }, [linkCode])
+
+  // Check the referral code shortly after the customer stops typing.
+  useEffect(() => {
+    const code = refCode.trim().toUpperCase()
+    if (!ref.enabled || code.length < 4) return setRefState({ status: 'idle', percent: 0 })
+    setRefState({ status: 'checking', percent: 0 })
+    const ctrl = new AbortController()
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/referral?code=${encodeURIComponent(code)}`, { signal: ctrl.signal })
+        if (!r.ok || !r.headers.get('content-type')?.includes('json')) throw new Error()
+        const d = (await r.json()) as { valid: boolean | null; friendPercent?: number }
+        const percent = d.friendPercent ?? ref.friendPercent
+        setRefState({ status: d.valid === null ? 'unverified' : d.valid ? 'valid' : 'invalid', percent })
+      } catch (e) {
+        if ((e as Error).name !== 'AbortError') setRefState({ status: 'unverified', percent: ref.friendPercent })
+      }
+    }, 500)
+    return () => {
+      clearTimeout(t)
+      ctrl.abort()
+    }
+  }, [refCode, ref.enabled, ref.friendPercent])
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [model, setModel] = useState('')
@@ -45,6 +80,8 @@ export function Booking() {
 
   const price = planPrice(planId, carType, billing)
   const plan = PLANS.find((p) => p.id === planId)
+  const refApplies = refState.status === 'valid' || refState.status === 'unverified'
+  const discount = refApplies && price != null ? Math.round((planPrice(planId, carType, 'monthly') ?? 0) * (refState.percent / 100)) : 0
 
   function locate() {
     if (!navigator.geolocation) return setError('Location is not available on this device.')
@@ -73,6 +110,7 @@ export function Booking() {
     if (!/^\d{6}$/.test(pincode)) return setError('Please enter a 6-digit pincode.')
 
     const car = CAR_TYPES.find((c) => c.id === carType)?.label
+    const code = refApplies ? refCode.trim().toUpperCase() : ''
     const lines = [
       `*New car wash booking*`,
       ``,
@@ -80,6 +118,7 @@ export function Booking() {
       `Phone: ${digits}`,
       `Car: ${car}${model.trim() ? ` · ${model.trim()}` : ''}${cars > 1 ? ` · ${cars} cars` : ''}`,
       `Plan: ${plan?.name} (${billing})${price != null ? ` · ${inr(price)}` : ' · price to confirm'}`,
+      code ? `Referral code: ${code} (${refState.percent}% off first month${refState.status === 'unverified' ? ', please verify' : ''})` : '',
       addons.length ? `Add-ons: ${addons.map((id) => ADDONS.find((a) => a.id === id)?.name).join(', ')}` : '',
       `Start date: ${start}`,
       days.length ? `Preferred days: ${days.join(', ')}` : '',
@@ -89,8 +128,24 @@ export function Booking() {
       mapLink ? `Location: ${mapLink}` : '',
       notes.trim() ? `Notes: ${notes.trim()}` : '',
     ].filter((l) => l !== '')
+    // Open WhatsApp straight away (inside the tap, so phones don't block it),
+    // and save the booking for the admin in the background.
     openWhatsApp(lines.join('\n'))
     setSent(true)
+    fetch('/api/bookings', {
+      method: 'POST',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name.trim(), phone: digits, carType, model: model.trim(), cars,
+        planId, planName: plan?.name, billing, price,
+        addons: addons.map((id) => ADDONS.find((a) => a.id === id)?.name ?? id),
+        pincode, address: address.trim(), mapLink, start, days, slot, notes: notes.trim(), refCode: code,
+      }),
+    })
+      .then((r) => (r.ok && r.headers.get('content-type')?.includes('json') ? r.json() : null))
+      .then((d: { myCode?: string } | null) => d?.myCode && setMyCode(d.myCode))
+      .catch(() => {})
   }
 
   return (
@@ -167,7 +222,25 @@ export function Booking() {
           <p className="-mt-3 text-sm text-slate-400">
             {plan?.name} · {billing}:{' '}
             <span className="font-semibold text-white">{price != null ? inr(price) : 'price confirmed on WhatsApp'}</span>
+            {discount > 0 && <span className="ml-2 font-semibold text-emerald-400">− {inr(discount)} referral discount on first month</span>}
           </p>
+
+          {ref.enabled && (
+            <label>
+              <Label hint="optional">Referral code</Label>
+              <input
+                className="field uppercase"
+                value={refCode}
+                onChange={(e) => setRefCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12))}
+                placeholder="Got a code from a friend?"
+                autoComplete="off"
+              />
+              {refState.status === 'checking' && <span className="mt-2 block text-xs text-slate-400">Checking…</span>}
+              {refState.status === 'valid' && <span className="mt-2 block text-xs text-emerald-400">✓ Code applied: {refState.percent}% off your first month</span>}
+              {refState.status === 'unverified' && <span className="mt-2 block text-xs text-amber-400">Code noted. {refState.percent}% off after we verify it.</span>}
+              {refState.status === 'invalid' && <span className="mt-2 block text-xs text-red-300">This code is not valid.</span>}
+            </label>
+          )}
 
           <div>
             <Label hint="optional">Add-ons</Label>
@@ -175,7 +248,7 @@ export function Booking() {
               {ADDONS.map((a) => (
                 <button type="button" key={a.id} onClick={() => setAddons(toggle(addons, a.id))} className={`chip ${addons.includes(a.id) ? 'chip-on' : 'chip-off'}`}>
                   {a.name}
-                  {a.price != null && ` · ${inr(a.price)}`}
+                  {addonPrice(a.id) != null && ` · ${inr(addonPrice(a.id)!)}`}
                 </button>
               ))}
             </div>
@@ -237,9 +310,10 @@ export function Booking() {
 
           {error && <p className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300" role="alert">{error}</p>}
           {sent && !error && (
-            <p className="rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+            <div className="rounded-xl bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
               WhatsApp opened. Tap <b>Send</b> there to confirm your booking with {BRAND.name}.
-            </p>
+              {myCode && <ShareCode code={myCode} />}
+            </div>
           )}
 
           <button type="submit" className="btn-primary w-full text-lg">

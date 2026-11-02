@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -35,12 +36,19 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        // The admin and the API must always hit the network, never the offline app shell.
+        navigateFallbackDenylist: [/^\/admin/, /^\/api\//],
+        globIgnores: ['admin.html', '**/admin-*.js'],
       },
     }),
   ],
   build: {
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        admin: fileURLToPath(new URL('./admin.html', import.meta.url)),
+      },
       output: {
         manualChunks(id) {
           if (id.includes('node_modules/three/')) return 'three'

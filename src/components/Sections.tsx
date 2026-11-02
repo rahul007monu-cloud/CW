@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ADDONS, BRAND, FAQ, HOW_IT_WORKS, SERVICE_AREAS, WHY_US } from '../config'
-import { inr, useReveal } from '../lib'
+import { addonPrice, inr, useReveal } from '../lib'
+import { useApp } from '../store'
 import { Logo } from './Logo'
 
 function Heading({ kicker, title }: { kicker: string; title: string }) {
@@ -55,6 +56,7 @@ export function HowItWorks() {
 }
 
 export function Addons() {
+  useApp() // re-render when admin prices load
   return (
     <section id="addons" className="px-5 py-24">
       <div className="mx-auto max-w-6xl">
@@ -63,7 +65,7 @@ export function Addons() {
           {ADDONS.map((a) => (
             <div key={a.id} className="panel flex items-center justify-between p-5">
               <span className="font-medium text-white">{a.name}</span>
-              <span className="text-sm text-neon">{a.price != null ? inr(a.price) : 'On request'}</span>
+              <span className="text-sm text-neon">{addonPrice(a.id) != null ? inr(addonPrice(a.id)!) : 'On request'}</span>
             </div>
           ))}
         </div>

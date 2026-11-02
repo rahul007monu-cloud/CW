@@ -2,10 +2,11 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { registerSW } from 'virtual:pwa-register'
 import App from './App'
-import { hideSplash } from './lib'
+import { hideSplash, loadRemoteSettings } from './lib'
 import './index.css'
 
 registerSW({ immediate: true })
+loadRemoteSettings()
 
 // Safety net: never keep the splash longer than 6 s (slow phone / no WebGL).
 setTimeout(hideSplash, 6000)

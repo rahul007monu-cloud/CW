@@ -17,6 +17,34 @@ pre-filled, so there is no backend and no server cost.
 | Booking | Name, phone, car, plan, add-ons, pincode check, address, **share current location**, start date, wash days, time slot → opens WhatsApp |
 | App | Install button (Android/desktop), iPhone "Add to Home Screen" guide, logo splash screen, works offline |
 
+## Admin panel: `/admin`
+
+Open `https://<your-site>/admin` on phone or laptop and log in with your PIN.
+
+| Tab | What you can do |
+| --- | --- |
+| Bookings | Every booking with call / WhatsApp / map buttons, status (New → Confirmed → Active → Paused / Cancelled), notes, delete, CSV export |
+| Referrals | Rewards still to give (referred customer is Active, reward not marked), top referrers |
+| Settings | Referral on/off, **new customer's discount %**, **referrer's reward %**, WhatsApp number, all plan prices, washes per month, add-on prices |
+
+### One-time setup in Vercel
+
+1. **Storage → Connect Database → Upstash for Redis** (free plan) and connect it to this project.
+2. **Settings → Environment Variables**: add `ADMIN_PIN` (6+ digits, keep it secret).
+   Optional: `REFERRAL_SECRET` (any long random text) so referral codes can't be guessed.
+3. **Deployments → Redeploy**.
+
+Without the database the site still works: bookings still go to WhatsApp,
+prices come from `src/config.ts`, and the Refer & earn section stays hidden.
+
+### How referral works
+
+1. A customer gets a code (e.g. `CW7KQ2MX`) after booking, or from the **Refer & earn** section, and shares a link `/?ref=CODE`.
+2. The friend's booking form fills the code in, shows the discount and sends it in the WhatsApp message.
+3. In the admin, the booking shows who referred it. When the friend's plan is **Active**, give the referrer their reward and tick **Referrer reward given**.
+
+Self-referral is blocked. Bookings, referral codes and admin login are rate-limited, and 10 wrong PINs lock that network out for 15 minutes.
+
 ## Editing content (no coding needed)
 
 Everything is in **[`src/config.ts`](src/config.ts)**. Items still waiting for
